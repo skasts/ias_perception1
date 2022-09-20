@@ -1,0 +1,4 @@
+[submodule "src/static_image_publisher"]
+	path = src/static_image_publisher
+	url = https://ias-course:-YYbzGg37mA_n3pBpatM@coursegit.cs.lth.se/ias-course/heron/static_image_publisher.git
+	branch = master

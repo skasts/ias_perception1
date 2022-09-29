@@ -92,7 +92,7 @@ class DepthListener:
         while self.image is None:
             self.rate.sleep()
         return self.image
-
+ 
 class RGBListener:
     def __init__(self, topic='/realsense/rgb/image_raw'):
         self.bridge = CvBridge()
@@ -104,7 +104,16 @@ class RGBListener:
         rospy.Subscriber(topic, Image, callback=self.image_callback)
 
     def image_callback(self, data):
-        if self.image is not None: return
+        try:
+            # We select bgr8 because its the OpneCV encoding by default
+            self.image = self.bridge.imgmsg_to_cv2(data, desired_encoding="bgr8")
+        except CvBridgeError as e:
+            print(e)
+
+        if self._show_raw_image:
+            cv2.imshow("Image window", self.cv_image)
+            cv2.waitKey(1)
+
 
         """
         TASK:

@@ -4,13 +4,14 @@ import cv2 as cv
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
-
+import sys
 
 class HSVDetector:
     def __init__(self, hsv_min, hsv_max):
         self.hsv_min = hsv_min
         self.hsv_max = hsv_max
 
+    # TODO: Improvement: Base detection also on depth information to improve detection success rate
     def detect(self, hsv_image):
         """
         TASK:
@@ -52,6 +53,62 @@ class HSVDetector:
 
 
 def detect_free_space(depth_image, blocks):
+    
+    # 
+    print(type(depth_image[0,0]))
+    depth_image_scaled = cv.convertScaleAbs(depth_image)
+    print(type(depth_image_scaled[0,0]))
+
+    
+    img2 = cv.distanceTransform(depth_image_scaled, cv.DIST_L2, 0)
+
+    print(img2)
+    print("max: ", np.max(img2))
+    print("min: ", np.min(img2))
+    print("median: ", np.median(img2))
+
+    print(type(img2[0,0]))
+
+    img3 = cv.normalize(img2, None, alpha=0, beta=1, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
+    # norm_image = cv2.normalize(image, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+    print(img3)
+    print("max: ", np.max(img3))
+    print("min: ", np.min(img3))
+    print("median: ", np.median(img3))
+
+    print(type(img3[0,0]))
+
+    # img3 = cv.applyColorMap(
+    #     img2, cv.COLORMAP_JET)
+
+    cv.imshow('depth image', img3)
+    cv.waitKey(0)
+
+    # Steps:
+    # - Get rid of noise (Opening / Closing)
+    # - Replace area (rectangle info) where our detected blocks are with "floor"-0s
+    # - Do distance transform (maybe also normalize)
+    # - Pick the "safest" pixel which is the one with the highest distance to 0 value pixels
+    # - Validation: Check if a brick could actually be placed on that spot by assuring that distance
+    #               to closest 0-pixel is higher than length/2 of our default bricks (make sure that 
+    #               distance scale corresponds)
+    # - Return (x,y) of best free space
+
+
+    # for color, (x, y, w, h) in blocks.items():
+    # np.set_printoptions(threshold=sys.maxsize)
+    # # print(depth_image)
+    # print(depth_image.shape)
+
+    # for row in depth_image:
+    #     row_values = ""
+    #     for col in row:
+    #         row_values = row_values + str(col)
+    #     print("row: " + row_values)
+
+    # bw = cv.cvtColor(depth_image, cv.COLOR_BGR2GRAY)
+    # _, bw = cv.threshold(bw, 40, 255, cv.THRESH_BINARY | cv.THRESH_OTSU)
+
     """
     TASK:
         Fill in this function.
@@ -202,38 +259,35 @@ def main():
     }
 
     # TODO: @TA: Why does shutdown not work as expected when removing the print statements?
-    while not rospy.is_shutdown():
-        depth = depth_listener.get()
-        rgb = rgb_listener.get()
+    # while not rospy.is_shutdown():
+    depth = depth_listener.get()
+    rgb = rgb_listener.get()
 
-        blocks = detect_blocks(rgb, hsv_detectors)
-        free_space = detect_free_space(depth, blocks)
+    blocks = detect_blocks(rgb, hsv_detectors)
+    free_space = detect_free_space(depth, blocks)
 
         # rospy.logwarn("0") 
         # TODO: (at some point) Enable detection of multiple objects of same color
         #       Maybe then introduce a threshold for the blob size to filter out noise
-        for color, (x, y, w, h) in blocks.items():
-            cx = int(x + w/2)
-            cy = int(y + h/2)
-            cv.circle(rgb, (cx, cy), 10, (0, 0, 255))
-            cv.putText(rgb, color, (cx-25, cy-15),
-                       cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255))
+    
+            # for color, (x, y, w, h) in blocks.items():
+            #     cx = int(x + w/2)
+            #     cy = int(y + h/2)
+            #     cv.circle(rgb, (cx, cy), 10, (0, 0, 255))
+            #     cv.putText(rgb, color, (cx-25, cy-15),
+            #             cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255))
 
-        # rospy.logwarn("1") 
+            # x, y = free_space
+            # x = int(x)
+            # y = int(y)
+            # cv.circle(rgb, (x, y), 10, (0, 255, 0))
+            # cv.putText(rgb, 'Free space', (x-25, y-15),
+            #         cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0))
 
-        x, y = free_space
-        x = int(x)
-        y = int(y)
-        cv.circle(rgb, (x, y), 10, (0, 255, 0))
-        cv.putText(rgb, 'Free space', (x-25, y-15),
-                   cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0))
-
-        cv.imshow('cv_window', rgb)
-        key = cv.waitKey(3) & 0xff
-        if key == ord('q'):
-            break
-
-        # rospy.logwarn("2") 
+            # cv.imshow('cv_window', rgb)
+            # key = cv.waitKey(3) & 0xff
+            # if key == ord('q'):
+            #     break
 
     rospy.sleep(1)
     cv.destroyAllWindows()

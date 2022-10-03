@@ -173,7 +173,7 @@ def detect_blocks(rgb_image, detectors):
 
     return out
 
-
+# TODO: Make node quitable
 def main():
     rospy.init_node('perception_solution')
 
@@ -201,13 +201,17 @@ def main():
                               hsv_max=(65, 100, 255)),
     }
 
-    while True:
+    # TODO: @TA: Why does shutdown not work as expected when removing the print statements?
+    while not rospy.is_shutdown():
         depth = depth_listener.get()
         rgb = rgb_listener.get()
 
         blocks = detect_blocks(rgb, hsv_detectors)
-        # free_space = detect_free_space(depth, blocks)
+        free_space = detect_free_space(depth, blocks)
 
+        # rospy.logwarn("0") 
+        # TODO: (at some point) Enable detection of multiple objects of same color
+        #       Maybe then introduce a threshold for the blob size to filter out noise
         for color, (x, y, w, h) in blocks.items():
             cx = int(x + w/2)
             cy = int(y + h/2)
@@ -215,18 +219,25 @@ def main():
             cv.putText(rgb, color, (cx-25, cy-15),
                        cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255))
 
-        # x, y = free_space
-        # x = int(x)
-        # y = int(y)
-        # cv.circle(rgb, (x, y), 10, (0, 255, 0))
-        # cv.putText(rgb, 'Free space', (x-25, y-15),
-        #            cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0))
+        # rospy.logwarn("1") 
+
+        x, y = free_space
+        x = int(x)
+        y = int(y)
+        cv.circle(rgb, (x, y), 10, (0, 255, 0))
+        cv.putText(rgb, 'Free space', (x-25, y-15),
+                   cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0))
 
         cv.imshow('cv_window', rgb)
         key = cv.waitKey(3) & 0xff
         if key == ord('q'):
             break
 
+        # rospy.logwarn("2") 
+
+    rospy.sleep(1)
+    cv.destroyAllWindows()
+    rospy.logwarn("Shutting down...") 
 
 if __name__ == '__main__':
     main()

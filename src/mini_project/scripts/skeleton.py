@@ -42,6 +42,7 @@ class HSVDetector:
 
         if contours:
             contour = contours[0]
+            # TODO: Elaborate here a bit on how to choose
 
             x, y, w, h = cv.boundingRect(contour)
 
@@ -188,15 +189,15 @@ def main():
     """
     hsv_detectors = {
         'blue':   HSVDetector(hsv_min=(90, 120, 200),
-                              hsv_max=(110, 150, 255)),
+                              hsv_max=(110, 255, 255)),
 
-        'orange': HSVDetector(hsv_min=(10, 120, 200),
-                              hsv_max=(30, 160, 255)),
+        'orange': HSVDetector(hsv_min=(23, 142, 235),
+                              hsv_max=(30, 206, 255)),
 
-        'yellow': HSVDetector(hsv_min=(31, 60, 200),
-                              hsv_max=(45, 100, 255)),
+        'yellow': HSVDetector(hsv_min=(20, 52, 203),
+                              hsv_max=(34, 119, 255)),
 
-        'green':  HSVDetector(hsv_min=(46, 60, 200),
+        'green':  HSVDetector(hsv_min=(46, 49, 200),
                               hsv_max=(65, 100, 255)),
     }
 

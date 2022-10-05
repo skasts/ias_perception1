@@ -54,87 +54,34 @@ class HSVDetector:
 
 def detect_free_space(depth_image, blocks):
     
-    # 
-    print(type(depth_image[0,0]))
-    depth_image_scaled = cv.convertScaleAbs(depth_image)
-    print(type(depth_image_scaled[0,0]))
+    # Convert scale of image to absolute values
+    image_scaled = cv.convertScaleAbs(depth_image)
 
+    # Dilate and erode to get rid of noise in depth image
+    kernel = np.ones((20, 20), np.uint8)
+    image_scaled = cv.dilate(image_scaled, kernel, iterations=1)
+    image_scaled = cv.erode(image_scaled, kernel, iterations=1)
     
-    img2 = cv.distanceTransform(depth_image_scaled, cv.DIST_L2, 0)
+    # Set borders to zero
+    image_scaled[0] = 0
+    image_scaled[:,-1] = 0
 
-    print(img2)
-    print("max: ", np.max(img2))
-    print("min: ", np.min(img2))
-    print("median: ", np.median(img2))
+    # Set block coordinates to zero
+    for _, (x, y, w, h) in blocks.items():
+        cx = int(x + w/2)
+        cy = int(y + h/2)
+        image_scaled[cy,cx] = 0
 
-    print(type(img2[0,0]))
+    # Distance transformation
+    image_distance = cv.distanceTransform(image_scaled, cv.DIST_L2, 0)
+    # Normalize image in case we want to show it
+    image_normalized = cv.normalize(image_distance, None, alpha=0, beta=1, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
 
-    img3 = cv.normalize(img2, None, alpha=0, beta=1, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
-    # norm_image = cv2.normalize(image, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-    print(img3)
-    print("max: ", np.max(img3))
-    print("min: ", np.min(img3))
-    print("median: ", np.median(img3))
+    # Get coordinates of best spot to place the new brick
+    index_free_space = np.argmax(image_normalized)
+    y,x = np.unravel_index(index_free_space, image_normalized.shape)
 
-    print(type(img3[0,0]))
-
-    # img3 = cv.applyColorMap(
-    #     img2, cv.COLORMAP_JET)
-
-    cv.imshow('depth image', img3)
-    cv.waitKey(0)
-
-    # Steps:
-    # - Get rid of noise (Opening / Closing)
-    # - Replace area (rectangle info) where our detected blocks are with "floor"-0s
-    # - Do distance transform (maybe also normalize)
-    # - Pick the "safest" pixel which is the one with the highest distance to 0 value pixels
-    # - Validation: Check if a brick could actually be placed on that spot by assuring that distance
-    #               to closest 0-pixel is higher than length/2 of our default bricks (make sure that 
-    #               distance scale corresponds)
-    # - Return (x,y) of best free space
-
-
-    # for color, (x, y, w, h) in blocks.items():
-    # np.set_printoptions(threshold=sys.maxsize)
-    # # print(depth_image)
-    # print(depth_image.shape)
-
-    # for row in depth_image:
-    #     row_values = ""
-    #     for col in row:
-    #         row_values = row_values + str(col)
-    #     print("row: " + row_values)
-
-    # bw = cv.cvtColor(depth_image, cv.COLOR_BGR2GRAY)
-    # _, bw = cv.threshold(bw, 40, 255, cv.THRESH_BINARY | cv.THRESH_OTSU)
-
-    """
-    TASK:
-        Fill in this function.
-
-        This function takes a depth image and detections from one or more HSVDetector.
-
-        It should return x,y coordinates of a point where a new block can be placed.
-
-        The returned point must be on the table and away from the detected blocks.
-
-        You may assume that the table is clear (except for the detected blocks),
-        and that the camera is looking straight down on the table.
-
-    HINTS:
-        The floor has depth-value 0.-
-        Look at the OpenCV function distanceTransform().
-
-    Parameters:
-        depth_image: An OpenCV depth image.
-        blocks: Detected blocks in the form of a dictionary {color: bounding_box, ...}.
-
-    Returns:
-        A tuple (x, y) representing a free-space position, where a new block could be placed.
-    """
-    return (0, 0)
-
+    return (x,y)
 
 class DepthListener:
     def __init__(self, topic='/realsense/aligned_depth_to_color/image_raw'):
@@ -259,35 +206,35 @@ def main():
     }
 
     # TODO: @TA: Why does shutdown not work as expected when removing the print statements?
-    # while not rospy.is_shutdown():
-    depth = depth_listener.get()
-    rgb = rgb_listener.get()
+    while not rospy.is_shutdown():
+        depth = depth_listener.get()
+        rgb = rgb_listener.get()
 
-    blocks = detect_blocks(rgb, hsv_detectors)
-    free_space = detect_free_space(depth, blocks)
+        blocks = detect_blocks(rgb, hsv_detectors)
+        free_space = detect_free_space(depth, blocks)
 
-        # rospy.logwarn("0") 
-        # TODO: (at some point) Enable detection of multiple objects of same color
-        #       Maybe then introduce a threshold for the blob size to filter out noise
-    
-            # for color, (x, y, w, h) in blocks.items():
-            #     cx = int(x + w/2)
-            #     cy = int(y + h/2)
-            #     cv.circle(rgb, (cx, cy), 10, (0, 0, 255))
-            #     cv.putText(rgb, color, (cx-25, cy-15),
-            #             cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255))
+            # rospy.logwarn("0") 
+            # TODO: (at some point) Enable detection of multiple objects of same color
+            #       Maybe then introduce a threshold for the blob size to filter out noise
+        
+        for color, (x, y, w, h) in blocks.items():
+            cx = int(x + w/2)
+            cy = int(y + h/2)
+            cv.circle(rgb, (cx, cy), 10, (0, 0, 255))
+            cv.putText(rgb, color, (cx-25, cy-15),
+                    cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255))
 
-            # x, y = free_space
-            # x = int(x)
-            # y = int(y)
-            # cv.circle(rgb, (x, y), 10, (0, 255, 0))
-            # cv.putText(rgb, 'Free space', (x-25, y-15),
-            #         cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0))
+        x, y = free_space
+        x = int(x)
+        y = int(y)
+        cv.circle(rgb, (x, y), 10, (0, 255, 0))
+        cv.putText(rgb, 'Free space', (x-25, y-15),
+                cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0))
 
-            # cv.imshow('cv_window', rgb)
-            # key = cv.waitKey(3) & 0xff
-            # if key == ord('q'):
-            #     break
+        cv.imshow('cv_window', rgb)
+        key = cv.waitKey(3) & 0xff
+        if key == ord('q'):
+            break
 
     rospy.sleep(1)
     cv.destroyAllWindows()

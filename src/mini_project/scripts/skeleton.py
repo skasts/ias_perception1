@@ -42,9 +42,9 @@ class HSVDetector:
             thresh, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
 
         if contours:
-            contour = contours[0]
-            # TODO: Elaborate here a bit on how to choose
-
+            contour_areas = [(contour, cv.contourArea(contour)) for contour in contours]
+            tuple = max(contour_areas, key=lambda x: x[1])
+            contour = tuple[0]
             x, y, w, h = cv.boundingRect(contour)
 
             return x, y, w, h
@@ -65,6 +65,8 @@ def detect_free_space(depth_image, blocks):
     # Set borders to zero
     image_scaled[0] = 0
     image_scaled[:,-1] = 0
+    image_scaled[-1] = 0
+    image_scaled[:,0] = 0
 
     # Set block coordinates to zero
     for _, (x, y, w, h) in blocks.items():
@@ -192,17 +194,17 @@ def main():
         Make a window with sliders like the one you saw in the ConstructSim course.
     """
     hsv_detectors = {
-        'blue':   HSVDetector(hsv_min=(90, 120, 200),
+        'blue':   HSVDetector(hsv_min=(90, 200, 200),
                               hsv_max=(110, 255, 255)),
 
-        'orange': HSVDetector(hsv_min=(23, 142, 235),
-                              hsv_max=(30, 206, 255)),
+        'orange': HSVDetector(hsv_min=(15, 140, 140),
+                              hsv_max=(25, 255, 255)),
 
-        'yellow': HSVDetector(hsv_min=(20, 52, 203),
-                              hsv_max=(34, 119, 255)),
+        'yellow': HSVDetector(hsv_min=(25, 50, 140),
+                              hsv_max=(35, 255, 255)),
 
-        'green':  HSVDetector(hsv_min=(46, 49, 200),
-                              hsv_max=(65, 100, 255)),
+        'green':  HSVDetector(hsv_min=(65, 120, 120),
+                              hsv_max=(75, 176, 255)),
     }
 
     # TODO: @TA: Why does shutdown not work as expected when removing the print statements?

@@ -194,7 +194,7 @@ def main():
         Make a window with sliders like the one you saw in the ConstructSim course.
     """
     hsv_detectors = {
-        'blue':   HSVDetector(hsv_min=(90, 200, 200),
+        'blue':   HSVDetector(hsv_min=(90, 150, 150),
                               hsv_max=(110, 255, 255)),
 
         'orange': HSVDetector(hsv_min=(15, 140, 140),
@@ -203,8 +203,8 @@ def main():
         'yellow': HSVDetector(hsv_min=(25, 50, 140),
                               hsv_max=(35, 255, 255)),
 
-        'green':  HSVDetector(hsv_min=(65, 120, 120),
-                              hsv_max=(75, 176, 255)),
+        'green':  HSVDetector(hsv_min=(56, 83, 120),
+                              hsv_max=(82, 176, 255)),
     }
 
     # TODO: @TA: Why does shutdown not work as expected when removing the print statements?
